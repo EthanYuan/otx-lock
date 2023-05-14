@@ -1,3 +1,5 @@
+pub mod helper;
+
 use ckb_testtool::ckb_types::bytes::Bytes;
 use std::env;
 use std::fs;
