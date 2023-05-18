@@ -1,5 +1,8 @@
 [workspace]
-members = ["contracts/otx-lock"]
+members = [
+    "ckb-lib-secp256k1",
+    "contracts/otx-lock"
+]
 exclude = ["tests"]
 
 [profile.release]

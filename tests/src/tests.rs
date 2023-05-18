@@ -1,12 +1,9 @@
 use super::*;
-use ckb_testtool::context::Context;
-use ckb_testtool::ckb_types::{
-    bytes::Bytes,
-    core::TransactionBuilder,
-    packed::*,
-    prelude::*,
-};
+
+use ckb_system_scripts::BUNDLED_CELL;
 use ckb_testtool::ckb_error::Error;
+use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
+use ckb_testtool::context::Context;
 
 const MAX_CYCLES: u64 = 10_000_000;
 
@@ -29,6 +26,23 @@ fn test_success() {
     let mut context = Context::default();
     let contract_bin: Bytes = Loader::default().load_binary("otx-lock");
     let out_point = context.deploy_cell(contract_bin);
+
+    // deploy secp256k1 lib
+    let secp256k1_bin: Bytes =
+        fs::read("../ckb-miscellaneous-scripts/build/secp256k1_blake2b_sighash_all_dual")
+            .expect("load secp256k1")
+            .into();
+    let secp256k1_out_point = context.deploy_cell(secp256k1_bin);
+    let secp256k1_dep = CellDep::new_builder()
+        .out_point(secp256k1_out_point)
+        .build();
+
+    // deploy secp256k1 data
+    let secp256k1_data_bin = BUNDLED_CELL.get("specs/cells/secp256k1_data").unwrap();
+    let secp256k1_data_out_point = context.deploy_cell(secp256k1_data_bin.to_vec().into());
+    let secp256k1_data_dep = CellDep::new_builder()
+        .out_point(secp256k1_data_out_point)
+        .build();
 
     // prepare scripts
     let lock_script = context
@@ -64,6 +78,8 @@ fn test_success() {
         .input(input)
         .outputs(outputs)
         .outputs_data(outputs_data.pack())
+        .cell_dep(secp256k1_dep)
+        .cell_dep(secp256k1_data_dep)
         .build();
     let tx = context.complete_tx(tx);
 
