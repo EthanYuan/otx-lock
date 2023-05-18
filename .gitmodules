@@ -1,0 +1,3 @@
+[submodule "ckb-auth"]
+	path = ckb-auth
+	url = https://github.com/cryptape/ckb-auth.git
