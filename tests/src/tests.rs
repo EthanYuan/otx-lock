@@ -10,7 +10,7 @@ use ckb_testtool::context::Context;
 const MAX_CYCLES: u64 = 10_000_000;
 
 // error numbers
-const ERROR_EMPTY_ARGS: i8 = 5;
+const ERROR_EMPTY_ARGS: i8 = 2;
 
 fn assert_script_error(err: Error, err_code: i8) {
     let error_string = err.to_string();
@@ -53,7 +53,7 @@ fn test_success() {
 
     // prepare scripts
     let lock_script = context
-        .build_script(&out_point, Bytes::from(vec![42]))
+        .build_script(&out_point, pubkey_hash.to_vec().into())
         .expect("script");
 
     // prepare cells

@@ -8,7 +8,10 @@ pub enum Error {
     LengthNotEnough,
     Encoding,
     // Add customized errors here...
-    MyError,
+    Secp256k1,
+    WrongPubkey,
+    _LoadPrefilledData,
+    _RecoverPubkey,
 }
 
 impl From<SysError> for Error {
@@ -23,4 +26,3 @@ impl From<SysError> for Error {
         }
     }
 }
-

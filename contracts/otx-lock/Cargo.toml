@@ -6,4 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+blake2b-ref = "0.3.1"
+ckb-lib-secp256k1 = { path = "../../ckb-lib-secp256k1" }
 ckb-std = "0.13"
