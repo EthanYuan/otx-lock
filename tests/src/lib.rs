@@ -4,6 +4,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+mod helper;
+
 #[cfg(test)]
 mod tests;
 

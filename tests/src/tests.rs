@@ -1,6 +1,8 @@
 use super::*;
+use crate::helper::{blake160, sign_tx};
 
 use ckb_system_scripts::BUNDLED_CELL;
+use ckb_testtool::ckb_crypto::secp::{Generator, Privkey};
 use ckb_testtool::ckb_error::Error;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
 use ckb_testtool::context::Context;
@@ -22,6 +24,11 @@ fn assert_script_error(err: Error, err_code: i8) {
 
 #[test]
 fn test_success() {
+    // generate key pair
+    let privkey = Generator::random_privkey();
+    let pubkey = privkey.pubkey().expect("pubkey");
+    let pubkey_hash = blake160(&pubkey.serialize());
+
     // deploy contract
     let mut context = Context::default();
     let contract_bin: Bytes = Loader::default().load_binary("otx-lock");
@@ -82,6 +89,9 @@ fn test_success() {
         .cell_dep(secp256k1_data_dep)
         .build();
     let tx = context.complete_tx(tx);
+
+    // sign
+    let tx = sign_tx(tx, &privkey);
 
     // run
     let cycles = context
