@@ -8,6 +8,7 @@ pub enum Error {
     LengthNotEnough,
     Encoding,
     // Add customized errors here...
+    UnsupportedSighashMode,
     Secp256k1,
     WrongPubkey,
     _LoadPrefilledData,
