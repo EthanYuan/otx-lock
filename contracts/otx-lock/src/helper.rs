@@ -57,7 +57,6 @@ pub(crate) fn validate_secp256k1_blake2b_sighash_all(
 pub(crate) fn validate_sighash_single_anyonecanpay(
     _lib: &LibSecp256k1,
     _expected_pubkey_hash: &[u8],
-    _message: &[u8],
 ) -> Result<(), Error> {
-    todo!()
+    Ok(())
 }

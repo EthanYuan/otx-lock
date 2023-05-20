@@ -9,6 +9,17 @@ use ckb_testtool::ckb_types::{
 };
 
 const MAX_CYCLES: u64 = 10_000_000;
+const SIGNATURE_SIZE: usize = 65;
+const MAGIC_CODE: &str = "COTX";
+
+pub(crate) enum SighashMode {
+    All = 0x01,
+    None = 0x02,
+    Single = 0x03,
+    AllAnyoneCanPay = 0x81,
+    NoneAnyoneCanPay = 0x82,
+    SingleAnyoneCanPay = 0x83,
+}
 
 pub(crate) fn blake160(data: &[u8]) -> [u8; 20] {
     let mut buf = [0u8; 20];
@@ -21,8 +32,6 @@ pub(crate) fn sign_secp256k1_blake2b_sighash_all(
     tx: TransactionView,
     key: &Privkey,
 ) -> TransactionView {
-    const SIGNATURE_SIZE: usize = 65;
-
     let witnesses_len = tx.witnesses().len();
     let tx_hash = tx.hash();
     let mut signed_witnesses: Vec<packed::Bytes> = Vec::new();
@@ -72,6 +81,71 @@ pub(crate) fn sign_secp256k1_blake2b_sighash_all(
 pub(crate) fn sign_sighash_single_acp(
     tx: TransactionView,
     key: &Privkey,
+    input_index: usize,
 ) -> TransactionView {
-    tx
+    // input
+    let input = tx.inputs().get(input_index).unwrap();
+    let input_len = input.as_slice().len() as u64;
+
+    // output
+    let output = tx.outputs().get(input_index).unwrap();
+    let output_len = output.as_slice().len() as u64;
+
+    // witness
+    let witness = WitnessArgs::default();
+    let zero_lock: Bytes = {
+        let mut buf = Vec::new();
+        buf.resize(1 + SIGNATURE_SIZE, 0);
+        buf.into()
+    };
+    let witness_for_digest = witness
+        .clone()
+        .as_builder()
+        .lock(Some(zero_lock).pack())
+        .build();
+    let witness_len = witness_for_digest.as_bytes().len() as u64;
+
+    let mut message = [0u8; 32];
+    let mut blake2b = new_blake2b();
+    blake2b.update(&input_len.to_le_bytes());
+    blake2b.update(input.as_slice());
+    blake2b.update(&output_len.to_le_bytes());
+    blake2b.update(output.as_slice());
+    blake2b.update(&witness_len.to_le_bytes());
+    blake2b.update(&witness_for_digest.as_bytes());
+    blake2b.finalize(&mut message);
+
+    // add prefix
+    add_prefix(SighashMode::SingleAnyoneCanPay as u8, &mut message);
+
+    // sign
+    let message = H256::from(message);
+    let sig = key.sign_recoverable(&message).expect("sign");
+
+    // set witness
+    let mut witness_lock = vec![SighashMode::SingleAnyoneCanPay as u8];
+    witness_lock.extend_from_slice(&sig.serialize());
+    let mut signed_witnesses: Vec<packed::Bytes> = Vec::new();
+    signed_witnesses.push(
+        witness
+            .as_builder()
+            .lock(Some(Bytes::from(witness_lock)).pack())
+            .build()
+            .as_bytes()
+            .pack(),
+    );
+    tx.as_advanced_builder()
+        .set_witnesses(signed_witnesses)
+        .build()
+}
+
+fn add_prefix(sighash: u8, message: &mut [u8]) {
+    let prefix = format!("{} {}:\n{}", MAGIC_CODE, sighash, message.len())
+        .as_bytes()
+        .to_vec();
+    let new = [prefix, message.to_vec()].concat();
+
+    let mut blake2b = new_blake2b();
+    blake2b.update(&new);
+    blake2b.finalize(message);
 }

@@ -59,9 +59,7 @@ pub fn main() -> Result<(), Error> {
             SighashMode::Single => Err(Error::UnsupportedSighashMode),
             SighashMode::AllAnyoneCanPay => todo!(),
             SighashMode::NoneAnyoneCanPay => Err(Error::UnsupportedSighashMode),
-            SighashMode::SingleAnyoneCanPay => {
-                validate_sighash_single_anyonecanpay(&lib, &args, &[0])
-            }
+            SighashMode::SingleAnyoneCanPay => validate_sighash_single_anyonecanpay(&lib, &args),
         };
     }
 
