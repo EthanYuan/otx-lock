@@ -37,7 +37,7 @@ fn main() {
     let mut hash = [0u8; 32];
     blake2b.finalize(&mut hash);
 
-    write!(
+    writeln!(
         &mut out_file,
         "pub const CODE_HASH_SECP256K1: [u8; 32] = {:?};\n",
         hash

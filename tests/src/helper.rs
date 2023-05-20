@@ -1,21 +1,12 @@
-use super::*;
-
-use ckb_system_scripts::BUNDLED_CELL;
-use ckb_testtool::ckb_crypto::secp::{Generator, Privkey};
-use ckb_testtool::ckb_error::assert_error_eq;
+use ckb_testtool::ckb_crypto::secp::Privkey;
 use ckb_testtool::ckb_hash::{blake2b_256, new_blake2b};
-use ckb_testtool::ckb_script::ScriptError;
 use ckb_testtool::ckb_types::{
     bytes::Bytes,
-    core::{TransactionBuilder, TransactionView},
+    core::TransactionView,
     packed::{self, *},
     prelude::*,
     H256,
 };
-use ckb_testtool::context::Context;
-use rand::{thread_rng, Rng};
-
-use std::fs;
 
 const MAX_CYCLES: u64 = 10_000_000;
 
@@ -26,7 +17,10 @@ pub(crate) fn blake160(data: &[u8]) -> [u8; 20] {
     buf
 }
 
-pub(crate) fn sign_tx(tx: TransactionView, key: &Privkey) -> TransactionView {
+pub(crate) fn sign_secp256k1_blake2b_sighash_all(
+    tx: TransactionView,
+    key: &Privkey,
+) -> TransactionView {
     const SIGNATURE_SIZE: usize = 65;
 
     let witnesses_len = tx.witnesses().len();
@@ -73,4 +67,11 @@ pub(crate) fn sign_tx(tx: TransactionView, key: &Privkey) -> TransactionView {
     tx.as_advanced_builder()
         .set_witnesses(signed_witnesses)
         .build()
+}
+
+pub(crate) fn sign_sighash_single_acp(
+    tx: TransactionView,
+    key: &Privkey,
+) -> TransactionView {
+    tx
 }

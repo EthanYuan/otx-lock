@@ -1,5 +1,8 @@
 use crate::error::Error;
-use crate::helper::{get_signature_mode_by_witness, validate_blake2b_sighash_all};
+use crate::helper::{
+    get_signature_mode_by_witness, validate_secp256k1_blake2b_sighash_all,
+    validate_sighash_single_anyonecanpay,
+};
 use crate::types::{SighashMode, SIGHASH_ALL_SIGNATURE_SIZE};
 
 // Import from `core` instead of from `std` since we are in no-std mode
@@ -41,7 +44,7 @@ pub fn main() -> Result<(), Error> {
         .ok_or(Error::Encoding)?
         .unpack();
     if witness_lock.len() == SIGHASH_ALL_SIGNATURE_SIZE {
-        return validate_blake2b_sighash_all(&lib, &args);
+        return validate_secp256k1_blake2b_sighash_all(&lib, &args);
     }
 
     // This is a lock script that is compatible with various sighash modes,
@@ -56,7 +59,9 @@ pub fn main() -> Result<(), Error> {
             SighashMode::Single => Err(Error::UnsupportedSighashMode),
             SighashMode::AllAnyoneCanPay => todo!(),
             SighashMode::NoneAnyoneCanPay => Err(Error::UnsupportedSighashMode),
-            SighashMode::SingleAnyoneCanPay => todo!(),
+            SighashMode::SingleAnyoneCanPay => {
+                validate_sighash_single_anyonecanpay(&lib, &args, &[0])
+            }
         };
     }
 

@@ -36,7 +36,7 @@ pub(crate) fn new_blake2b() -> Blake2b {
         .build()
 }
 
-pub(crate) fn validate_blake2b_sighash_all(
+pub(crate) fn validate_secp256k1_blake2b_sighash_all(
     lib: &LibSecp256k1,
     expected_pubkey_hash: &[u8],
 ) -> Result<(), Error> {
@@ -52,4 +52,12 @@ pub(crate) fn validate_blake2b_sighash_all(
         return Err(Error::WrongPubkey);
     }
     Ok(())
+}
+
+pub(crate) fn validate_sighash_single_anyonecanpay(
+    _lib: &LibSecp256k1,
+    _expected_pubkey_hash: &[u8],
+    _message: &[u8],
+) -> Result<(), Error> {
+    todo!()
 }

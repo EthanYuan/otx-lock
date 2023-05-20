@@ -43,11 +43,12 @@ impl Default for Pubkey {
     }
 }
 
-impl Into<[u8; 33]> for Pubkey {
-    fn into(self) -> [u8; 33] {
-        self.0
+impl From<Pubkey> for [u8; 33] {
+    fn from(val: Pubkey) -> Self {
+        val.0
     }
 }
+
 pub struct LibSecp256k1 {
     validate_blake2b_sighash_all: Symbol<ValidateBlake2bSighashAll>,
     validate_signature: Symbol<ValidateSignature>,
