@@ -28,10 +28,7 @@ pub fn blake160(data: &[u8]) -> [u8; 20] {
     buf
 }
 
-pub fn sign_secp256k1_blake2b_sighash_all(
-    tx: TransactionView,
-    key: &Privkey,
-) -> TransactionView {
+pub fn sign_secp256k1_blake2b_sighash_all(tx: TransactionView, key: &Privkey) -> TransactionView {
     let witnesses_len = tx.witnesses().len();
     let tx_hash = tx.hash();
     let mut signed_witnesses: Vec<packed::Bytes> = Vec::new();
@@ -116,6 +113,7 @@ pub fn sign_sighash_single_acp(
         .build();
     let witness_len = witness_for_digest.as_bytes().len() as u64;
 
+    // hash
     let mut message = [0u8; 32];
     let mut blake2b = new_blake2b();
     blake2b.update(&input_len.to_le_bytes());
@@ -150,3 +148,34 @@ pub fn sign_sighash_single_acp(
         .build()
 }
 
+pub fn sign_sighash_all_acp(
+    tx: TransactionView,
+    key: &Privkey,
+    input_index: usize,
+) -> TransactionView {
+    // witness
+    let witness = WitnessArgs::default();
+
+    // hash
+    let mut message = [0u8; 32];
+
+    // sign
+    let message = H256::from(message);
+    let sig = key.sign_recoverable(&message).expect("sign");
+
+    // set witness
+    let mut witness_lock = vec![SighashMode::AllAnyoneCanPay as u8];
+    witness_lock.extend_from_slice(&sig.serialize());
+    let mut signed_witnesses: Vec<packed::Bytes> = Vec::new();
+    signed_witnesses.push(
+        witness
+            .as_builder()
+            .lock(Some(Bytes::from(witness_lock)).pack())
+            .build()
+            .as_bytes()
+            .pack(),
+    );
+    tx.as_advanced_builder()
+        .set_witnesses(signed_witnesses)
+        .build()
+}

@@ -2,6 +2,7 @@ use super::*;
 use crate::helper::MAX_CYCLES;
 
 mod secp256k1_blake2b_sighash_all;
+mod sighash_all_anyonecanpay;
 mod sighash_single_anyonecanpay;
 
 use ckb_testtool::ckb_error::Error;

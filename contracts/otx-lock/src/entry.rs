@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::helper::{
     get_signature_mode_by_witness, validate_secp256k1_blake2b_sighash_all,
-    validate_sighash_single_anyonecanpay,
+    validate_sighash_all_anyonecanpay, validate_sighash_single_anyonecanpay,
 };
 use crate::types::{SighashMode, SIGHASH_ALL_SIGNATURE_SIZE};
 
@@ -57,7 +57,9 @@ pub fn main() -> Result<(), Error> {
             SighashMode::All => Err(Error::UnsupportedSighashMode),
             SighashMode::None => Err(Error::UnsupportedSighashMode),
             SighashMode::Single => Err(Error::UnsupportedSighashMode),
-            SighashMode::AllAnyoneCanPay => todo!(),
+            SighashMode::AllAnyoneCanPay => {
+                validate_sighash_all_anyonecanpay(&lib, i, &signature, &args)
+            }
             SighashMode::NoneAnyoneCanPay => Err(Error::UnsupportedSighashMode),
             SighashMode::SingleAnyoneCanPay => {
                 validate_sighash_single_anyonecanpay(&lib, i, &signature, &args)

@@ -78,6 +78,35 @@ fn add_prefix(sighash: u8, message: &mut [u8]) {
     blake2b.finalize(message);
 }
 
+fn verify_pubkey_hash(
+    lib: &LibSecp256k1,
+    message: &[u8],
+    signature: &[u8; SIGHASH_ALL_SIGNATURE_SIZE],
+    expected_pubkey_hash: &[u8],
+) -> Result<(), Error> {
+    let prefilled_data = lib.load_prefilled_data().map_err(|err| {
+        debug!("load prefilled data error: {}", err);
+        Error::LoadPrefilledData
+    })?;
+    let pubkey = lib
+        .recover_pubkey(&prefilled_data, signature, &message)
+        .map_err(|err| {
+            debug!("recover pubkey error: {}", err);
+            Error::RecoverPubkey
+        })?;
+    let pubkey_hash = {
+        let mut buf = [0u8; 32];
+        let mut hasher = new_blake2b();
+        hasher.update(pubkey.as_slice());
+        hasher.finalize(&mut buf);
+        buf
+    };
+    if &expected_pubkey_hash[..] != &pubkey_hash[..20] {
+        return Err(Error::WrongPubkey);
+    }
+    Ok(())
+}
+
 pub(crate) fn validate_sighash_single_anyonecanpay(
     lib: &LibSecp256k1,
     index: usize,
@@ -124,31 +153,11 @@ pub(crate) fn validate_sighash_single_anyonecanpay(
     verify_pubkey_hash(lib, &message, signature, expected_pubkey_hash)
 }
 
-fn verify_pubkey_hash(
+pub(crate) fn validate_sighash_all_anyonecanpay(
     lib: &LibSecp256k1,
-    message: &[u8],
+    index: usize,
     signature: &[u8; SIGHASH_ALL_SIGNATURE_SIZE],
     expected_pubkey_hash: &[u8],
 ) -> Result<(), Error> {
-    let prefilled_data = lib.load_prefilled_data().map_err(|err| {
-        debug!("load prefilled data error: {}", err);
-        Error::LoadPrefilledData
-    })?;
-    let pubkey = lib
-        .recover_pubkey(&prefilled_data, signature, &message)
-        .map_err(|err| {
-            debug!("recover pubkey error: {}", err);
-            Error::RecoverPubkey
-        })?;
-    let pubkey_hash = {
-        let mut buf = [0u8; 32];
-        let mut hasher = new_blake2b();
-        hasher.update(pubkey.as_slice());
-        hasher.finalize(&mut buf);
-        buf
-    };
-    if &expected_pubkey_hash[..] != &pubkey_hash[..20] {
-        return Err(Error::WrongPubkey);
-    }
     Ok(())
 }
