@@ -3,7 +3,9 @@ use crate::alloc::{
     boxed::Box,
 };
 use crate::code_hashes::CODE_HASH_SECP256K1;
-use ckb_std::dynamic_loading::{CKBDLContext, Symbol};
+
+use ckb_std::ckb_types::core::ScriptHashType;
+use ckb_std::dynamic_loading_c_impl::{CKBDLContext, Symbol};
 
 /// function signature of validate_secp256k1_blake2b_sighash_all
 type ValidateBlake2bSighashAll = unsafe extern "C" fn(pubkey_hash: *const u8) -> i32;
@@ -58,7 +60,9 @@ pub struct LibSecp256k1 {
 impl LibSecp256k1 {
     pub fn load<T>(context: &mut CKBDLContext<T>) -> Self {
         // load library
-        let lib = context.load(&CODE_HASH_SECP256K1).expect("load secp256k1");
+        let lib = context
+            .load_by(&CODE_HASH_SECP256K1, ScriptHashType::Data)
+            .expect("load secp256k1");
 
         // find symbols
         let validate_blake2b_sighash_all: Symbol<ValidateBlake2bSighashAll> = unsafe {
