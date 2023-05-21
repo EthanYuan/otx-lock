@@ -11,8 +11,8 @@ pub enum Error {
     UnsupportedSighashMode,
     Secp256k1,
     WrongPubkey,
-    _LoadPrefilledData,
-    _RecoverPubkey,
+    LoadPrefilledData,
+    RecoverPubkey,
 }
 
 impl From<SysError> for Error {

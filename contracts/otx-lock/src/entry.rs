@@ -14,7 +14,7 @@ use ckb_std::{
     ckb_constants::Source,
     ckb_types::{bytes::Bytes, prelude::*},
     debug,
-    dynamic_loading::CKBDLContext,
+    dynamic_loading_c_impl::CKBDLContext,
     high_level::{load_script, load_transaction, load_witness_args},
 };
 
@@ -32,7 +32,7 @@ pub fn main() -> Result<(), Error> {
     }
 
     // create a DL context with 128K buffer size
-    let mut context = unsafe { CKBDLContext::<[u8; 128 * 1024]>::new() };
+    let mut context: CKBDLContext<[u8; 128 * 1024]> = unsafe { CKBDLContext::new() };
     let lib = LibSecp256k1::load(&mut context);
 
     // This lock script is fully compatible with the secp256k1_blake2b_sighash_all signature algorithm.
@@ -52,14 +52,16 @@ pub fn main() -> Result<(), Error> {
     let inputs_count = load_transaction()?.raw().inputs().len();
     for i in 0..inputs_count {
         // switch case
-        let (_signature, sighash_mode) = get_signature_mode_by_witness(i)?;
+        let (signature, sighash_mode) = get_signature_mode_by_witness(i)?;
         return match sighash_mode {
             SighashMode::All => Err(Error::UnsupportedSighashMode),
             SighashMode::None => Err(Error::UnsupportedSighashMode),
             SighashMode::Single => Err(Error::UnsupportedSighashMode),
             SighashMode::AllAnyoneCanPay => todo!(),
             SighashMode::NoneAnyoneCanPay => Err(Error::UnsupportedSighashMode),
-            SighashMode::SingleAnyoneCanPay => validate_sighash_single_anyonecanpay(&lib, &args),
+            SighashMode::SingleAnyoneCanPay => {
+                validate_sighash_single_anyonecanpay(&lib, i, &signature, &args)
+            }
         };
     }
 

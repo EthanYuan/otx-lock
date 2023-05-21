@@ -1,13 +1,12 @@
+use super::*;
+use crate::helper::MAX_CYCLES;
+
 mod secp256k1_blake2b_sighash_all;
 mod sighash_single_anyonecanpay;
-
-use super::*;
 
 use ckb_testtool::ckb_error::Error;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
 use ckb_testtool::context::Context;
-
-const MAX_CYCLES: u64 = 10_000_000;
 
 // error numbers
 const ERROR_EMPTY_ARGS: i8 = 2;

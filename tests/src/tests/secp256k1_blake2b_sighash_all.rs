@@ -1,4 +1,4 @@
-use crate::helper::{blake160, sign_secp256k1_blake2b_sighash_all};
+use crate::helper::{blake160, sign_secp256k1_blake2b_sighash_all, MAX_CYCLES};
 
 use super::*;
 
@@ -8,8 +8,6 @@ use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*,
 use ckb_testtool::context::Context;
 
 use std::fs;
-
-const MAX_CYCLES: u64 = 10_000_000;
 
 #[test]
 fn test_secp256k1_blake2b_sighash_all() {

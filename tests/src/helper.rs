@@ -8,11 +8,11 @@ use ckb_testtool::ckb_types::{
     H256,
 };
 
-const MAX_CYCLES: u64 = 10_000_000;
-const SIGNATURE_SIZE: usize = 65;
-const MAGIC_CODE: &str = "COTX";
+pub const MAX_CYCLES: u64 = 10_000_000;
+pub const SIGNATURE_SIZE: usize = 65;
+pub const MAGIC_CODE: &str = "COTX";
 
-pub(crate) enum SighashMode {
+pub enum SighashMode {
     All = 0x01,
     None = 0x02,
     Single = 0x03,
@@ -21,14 +21,14 @@ pub(crate) enum SighashMode {
     SingleAnyoneCanPay = 0x83,
 }
 
-pub(crate) fn blake160(data: &[u8]) -> [u8; 20] {
+pub fn blake160(data: &[u8]) -> [u8; 20] {
     let mut buf = [0u8; 20];
     let hash = blake2b_256(data);
     buf.clone_from_slice(&hash[..20]);
     buf
 }
 
-pub(crate) fn sign_secp256k1_blake2b_sighash_all(
+pub fn sign_secp256k1_blake2b_sighash_all(
     tx: TransactionView,
     key: &Privkey,
 ) -> TransactionView {
@@ -78,7 +78,18 @@ pub(crate) fn sign_secp256k1_blake2b_sighash_all(
         .build()
 }
 
-pub(crate) fn sign_sighash_single_acp(
+fn add_prefix(sighash: u8, message: &mut [u8]) {
+    let prefix = format!("{} {}:\n{}", MAGIC_CODE, sighash, message.len())
+        .as_bytes()
+        .to_vec();
+    let new = [prefix, message.to_vec()].concat();
+
+    let mut blake2b = new_blake2b();
+    blake2b.update(&new);
+    blake2b.finalize(message);
+}
+
+pub fn sign_sighash_single_acp(
     tx: TransactionView,
     key: &Privkey,
     input_index: usize,
@@ -139,13 +150,3 @@ pub(crate) fn sign_sighash_single_acp(
         .build()
 }
 
-fn add_prefix(sighash: u8, message: &mut [u8]) {
-    let prefix = format!("{} {}:\n{}", MAGIC_CODE, sighash, message.len())
-        .as_bytes()
-        .to_vec();
-    let new = [prefix, message.to_vec()].concat();
-
-    let mut blake2b = new_blake2b();
-    blake2b.update(&new);
-    blake2b.finalize(message);
-}

@@ -1,6 +1,7 @@
 use crate::error::Error;
 
 pub(crate) const SIGHASH_ALL_SIGNATURE_SIZE: usize = 65;
+pub(crate) const MAGIC_CODE: &str = "COTX";
 
 #[derive(PartialEq)]
 pub(crate) enum SighashMode {
