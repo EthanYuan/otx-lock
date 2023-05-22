@@ -44,15 +44,25 @@ fn test_sighash_all_anyonecanpay() {
         .expect("script");
 
     // prepare cells
-    let input_out_point = context.create_cell(
+    let input_out_point_1 = context.create_cell(
         CellOutput::new_builder()
-            .capacity(1000u64.pack())
+            .capacity(200u64.pack())
             .lock(lock_script.clone())
             .build(),
         Bytes::new(),
     );
-    let input = CellInput::new_builder()
-        .previous_output(input_out_point)
+    let input_1 = CellInput::new_builder()
+        .previous_output(input_out_point_1)
+        .build();
+    let input_out_point_2 = context.create_cell(
+        CellOutput::new_builder()
+            .capacity(800u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+        Bytes::new(),
+    );
+    let input_2 = CellInput::new_builder()
+        .previous_output(input_out_point_2)
         .build();
     let outputs = vec![
         CellOutput::new_builder()
@@ -69,7 +79,8 @@ fn test_sighash_all_anyonecanpay() {
 
     // build transaction
     let tx = TransactionBuilder::default()
-        .input(input)
+        .input(input_1)
+        .input(input_2)
         .outputs(outputs)
         .outputs_data(outputs_data.pack())
         .cell_dep(secp256k1_dep)
@@ -79,6 +90,7 @@ fn test_sighash_all_anyonecanpay() {
 
     // sign
     let tx = sign_sighash_all_acp(tx, &privkey, 0);
+    let tx = sign_sighash_all_acp(tx, &privkey, 1);
 
     // run
     let cycles = context

@@ -131,21 +131,18 @@ pub fn sign_sighash_single_acp(
     let message = H256::from(message);
     let sig = key.sign_recoverable(&message).expect("sign");
 
-    // set witness
+    // witness
     let mut witness_lock = vec![SighashMode::SingleAnyoneCanPay as u8];
     witness_lock.extend_from_slice(&sig.serialize());
-    let mut signed_witnesses: Vec<packed::Bytes> = Vec::new();
-    signed_witnesses.push(
-        witness
-            .as_builder()
-            .lock(Some(Bytes::from(witness_lock)).pack())
-            .build()
-            .as_bytes()
-            .pack(),
-    );
-    tx.as_advanced_builder()
-        .set_witnesses(signed_witnesses)
+    let witness = witness
+        .as_builder()
+        .lock(Some(Bytes::from(witness_lock)).pack())
         .build()
+        .as_bytes()
+        .pack();
+
+    // set witness
+    tx.as_advanced_builder().witness(witness).build()
 }
 
 pub fn sign_sighash_all_acp(
@@ -186,6 +183,17 @@ pub fn sign_sighash_all_acp(
     blake2b.update(outputs.as_slice());
     blake2b.update(&witness_len.to_le_bytes());
     blake2b.update(&witness_for_digest.as_bytes());
+
+    for i in 0..tx.inputs().len() {
+        if i == input_index {
+            continue;
+        }
+        let witness_for_digest = WitnessArgsBuilder::default().build();
+        let witness_len = witness_for_digest.as_bytes().len() as u64;
+        blake2b.update(&witness_len.to_le_bytes());
+        blake2b.update(&witness_for_digest.as_bytes());
+    }
+
     blake2b.finalize(&mut message);
 
     // add prefix
@@ -195,19 +203,16 @@ pub fn sign_sighash_all_acp(
     let message = H256::from(message);
     let sig = key.sign_recoverable(&message).expect("sign");
 
-    // set witness
+    // witness
     let mut witness_lock = vec![SighashMode::AllAnyoneCanPay as u8];
     witness_lock.extend_from_slice(&sig.serialize());
-    let mut signed_witnesses: Vec<packed::Bytes> = Vec::new();
-    signed_witnesses.push(
-        witness
-            .as_builder()
-            .lock(Some(Bytes::from(witness_lock)).pack())
-            .build()
-            .as_bytes()
-            .pack(),
-    );
-    tx.as_advanced_builder()
-        .set_witnesses(signed_witnesses)
+    let witness = witness
+        .as_builder()
+        .lock(Some(Bytes::from(witness_lock)).pack())
         .build()
+        .as_bytes()
+        .pack();
+
+    // set witness
+    tx.as_advanced_builder().witness(witness).build()
 }
