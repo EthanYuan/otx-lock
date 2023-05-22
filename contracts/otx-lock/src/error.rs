@@ -9,6 +9,7 @@ pub enum Error {
     Encoding,
     // Add customized errors here...
     UnsupportedSighashMode,
+    LoopGroupInputs,
     Secp256k1,
     WrongPubkey,
     LoadPrefilledData,

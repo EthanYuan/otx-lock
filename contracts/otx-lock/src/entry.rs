@@ -13,7 +13,8 @@ use ckb_std::{
     ckb_types::{bytes::Bytes, prelude::*},
     debug,
     dynamic_loading_c_impl::CKBDLContext,
-    high_level::{load_script, load_transaction, load_witness_args},
+    error::SysError,
+    high_level::{load_input, load_script, load_witness_args},
 };
 
 use ckb_lib_secp256k1::LibSecp256k1;
@@ -47,22 +48,28 @@ pub fn main() -> Result<(), Error> {
 
     // This is a lock script that is compatible with various sighash modes,
     // so we need to verify each witness in the same lock script group
-    let inputs_count = load_transaction()?.raw().inputs().len();
-    for i in 0..inputs_count {
-        // switch case
-        let (signature, sighash_mode) = get_signature_mode_by_witness(i)?;
-        return match sighash_mode {
-            SighashMode::All => Err(Error::UnsupportedSighashMode),
-            SighashMode::None => Err(Error::UnsupportedSighashMode),
-            SighashMode::Single => Err(Error::UnsupportedSighashMode),
-            SighashMode::AllAnyoneCanPay => {
-                validate_sighash_all_anyonecanpay(&lib, i, &signature, &args)
+    let mut i = 0;
+    loop {
+        match load_input(i, Source::GroupInput) {
+            Ok(_) => {
+                let (signature, sighash_mode) = get_signature_mode_by_witness(i)?;
+                match sighash_mode {
+                    SighashMode::All => return Err(Error::UnsupportedSighashMode),
+                    SighashMode::None => return Err(Error::UnsupportedSighashMode),
+                    SighashMode::Single => return Err(Error::UnsupportedSighashMode),
+                    SighashMode::AllAnyoneCanPay => {
+                        validate_sighash_all_anyonecanpay(&lib, i, &signature, &args)?;
+                    }
+                    SighashMode::NoneAnyoneCanPay => return Err(Error::UnsupportedSighashMode),
+                    SighashMode::SingleAnyoneCanPay => {
+                        validate_sighash_single_anyonecanpay(&lib, i, &signature, &args)?;
+                    }
+                };
+                i += 1;
             }
-            SighashMode::NoneAnyoneCanPay => Err(Error::UnsupportedSighashMode),
-            SighashMode::SingleAnyoneCanPay => {
-                validate_sighash_single_anyonecanpay(&lib, i, &signature, &args)
-            }
-        };
+            Err(SysError::IndexOutOfBound) => break,
+            Err(_) => return Err(Error::LoopGroupInputs),
+        }
     }
 
     Ok(())
