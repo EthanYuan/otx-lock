@@ -13,7 +13,9 @@ use alloc::{vec, vec::Vec};
 use ckb_std::{
     ckb_constants::Source,
     ckb_types::bytes::Bytes,
+    ckb_types::packed::WitnessArgsBuilder,
     ckb_types::prelude::*,
+    error::SysError,
     high_level::{load_transaction, load_witness_args},
 };
 
@@ -29,7 +31,7 @@ pub(crate) fn validate_sighash_all_anyonecanpay(
     let input = tx.inputs().get(index).ok_or(Error::Encoding)?;
     let input_len = input.as_slice().len() as u64;
 
-    // output
+    // outputs
     let outputs = tx.outputs();
     let outputs_count = outputs.len();
     let outputs_len = outputs.as_slice().len() as u64;
@@ -57,6 +59,29 @@ pub(crate) fn validate_sighash_all_anyonecanpay(
     blake2b.update(outputs.as_slice());
     blake2b.update(&witness_len.to_le_bytes());
     blake2b.update(&witness_for_digest.as_bytes());
+
+    let mut i = 0;
+    loop {
+        if i == index {
+            i += 1;
+            continue;
+        }
+        match load_witness_args(i, Source::GroupInput) {
+            Ok(_) => {
+                let witness = load_witness_args(i, Source::GroupInput)?;
+                let witness_for_digest = WitnessArgsBuilder::default()
+                    .output_type(witness.output_type())
+                    .build();
+                let witness_len = witness_for_digest.as_bytes().len() as u64;
+                blake2b.update(&witness_len.to_le_bytes());
+                blake2b.update(&witness_for_digest.as_bytes());
+                i += 1;
+            }
+            Err(SysError::IndexOutOfBound) => break,
+            Err(_) => return Err(Error::LoopGroupInputs),
+        }
+    }
+
     blake2b.finalize(&mut message);
 
     // add prefix
