@@ -12,6 +12,7 @@ mod entry;
 mod error;
 mod helper;
 mod types;
+mod validate;
 
 #[cfg(test)]
 extern crate alloc;

@@ -153,11 +153,43 @@ pub fn sign_sighash_all_acp(
     key: &Privkey,
     input_index: usize,
 ) -> TransactionView {
+    // input
+    let input = tx.inputs().get(input_index).unwrap();
+    let input_len = input.as_slice().len() as u64;
+
+    // outputs
+    let outputs = tx.outputs();
+    let outputs_count = outputs.len();
+    let outputs_len = outputs.as_slice().len() as u64;
+
     // witness
     let witness = WitnessArgs::default();
+    let zero_lock: Bytes = {
+        let mut buf = Vec::new();
+        buf.resize(1 + SIGNATURE_SIZE, 0);
+        buf.into()
+    };
+    let witness_for_digest = witness
+        .clone()
+        .as_builder()
+        .lock(Some(zero_lock).pack())
+        .build();
+    let witness_len = witness_for_digest.as_bytes().len() as u64;
 
     // hash
     let mut message = [0u8; 32];
+    let mut blake2b = new_blake2b();
+    blake2b.update(&input_len.to_le_bytes());
+    blake2b.update(input.as_slice());
+    blake2b.update(&outputs_count.to_le_bytes());
+    blake2b.update(&outputs_len.to_le_bytes());
+    blake2b.update(outputs.as_slice());
+    blake2b.update(&witness_len.to_le_bytes());
+    blake2b.update(&witness_for_digest.as_bytes());
+    blake2b.finalize(&mut message);
+
+    // add prefix
+    add_prefix(SighashMode::SingleAnyoneCanPay as u8, &mut message);
 
     // sign
     let message = H256::from(message);

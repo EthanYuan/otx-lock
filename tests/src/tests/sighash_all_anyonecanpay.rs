@@ -1,4 +1,4 @@
-use crate::helper::{blake160, sign_sighash_all_acp, sign_sighash_single_acp, MAX_CYCLES};
+use crate::helper::{blake160, sign_sighash_all_acp, MAX_CYCLES};
 
 use super::*;
 

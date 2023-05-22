@@ -8,16 +8,13 @@ use blake2b_ref::{Blake2b, Blake2bBuilder};
 // Import heap related library from `alloc`
 // https://doc.rust-lang.org/alloc/index.html
 use alloc::string::ToString;
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 
 // Import CKB syscalls and structures
 // https://docs.rs/ckb-std/
 use ckb_std::{
-    ckb_constants::Source,
-    ckb_types::bytes::Bytes,
-    ckb_types::prelude::*,
-    debug,
-    high_level::{load_transaction, load_witness_args},
+    ckb_constants::Source, ckb_types::bytes::Bytes, ckb_types::prelude::*, debug,
+    high_level::load_witness_args,
 };
 
 pub(crate) fn get_signature_mode_by_witness(
@@ -64,7 +61,7 @@ pub(crate) fn validate_secp256k1_blake2b_sighash_all(
     Ok(())
 }
 
-fn add_prefix(sighash: u8, message: &mut [u8]) {
+pub(crate) fn add_prefix(sighash: u8, message: &mut [u8]) {
     let mut prefix = Vec::new();
     prefix.extend_from_slice(MAGIC_CODE.as_bytes());
     prefix.push(b' ');
@@ -78,7 +75,7 @@ fn add_prefix(sighash: u8, message: &mut [u8]) {
     blake2b.finalize(message);
 }
 
-fn verify_pubkey_hash(
+pub(crate) fn verify_pubkey_hash(
     lib: &LibSecp256k1,
     message: &[u8],
     signature: &[u8; SIGHASH_ALL_SIGNATURE_SIZE],
@@ -104,60 +101,5 @@ fn verify_pubkey_hash(
     if &expected_pubkey_hash[..] != &pubkey_hash[..20] {
         return Err(Error::WrongPubkey);
     }
-    Ok(())
-}
-
-pub(crate) fn validate_sighash_single_anyonecanpay(
-    lib: &LibSecp256k1,
-    index: usize,
-    signature: &[u8; SIGHASH_ALL_SIGNATURE_SIZE],
-    expected_pubkey_hash: &[u8],
-) -> Result<(), Error> {
-    let tx = load_transaction()?.raw();
-
-    // input
-    let input = tx.inputs().get(index).ok_or(Error::Encoding)?;
-    let input_len = input.as_slice().len() as u64;
-
-    // output
-    let output = tx.outputs().get(index).ok_or(Error::Encoding)?;
-    let output_len = output.as_slice().len() as u64;
-
-    // witness
-    let witness = load_witness_args(index, Source::GroupInput)?;
-    let zero_lock: Bytes = {
-        let buf: Vec<_> = vec![0u8; 1 + SIGHASH_ALL_SIGNATURE_SIZE];
-        buf.into()
-    };
-    let witness_for_digest = witness
-        .clone()
-        .as_builder()
-        .lock(Some(zero_lock).pack())
-        .build();
-    let witness_len = witness_for_digest.as_bytes().len() as u64;
-
-    // hash
-    let mut message = [0u8; 32];
-    let mut blake2b = new_blake2b();
-    blake2b.update(&input_len.to_le_bytes());
-    blake2b.update(input.as_slice());
-    blake2b.update(&output_len.to_le_bytes());
-    blake2b.update(output.as_slice());
-    blake2b.update(&witness_len.to_le_bytes());
-    blake2b.update(&witness_for_digest.as_bytes());
-    blake2b.finalize(&mut message);
-
-    // add prefix
-    add_prefix(SighashMode::SingleAnyoneCanPay as u8, &mut message);
-
-    verify_pubkey_hash(lib, &message, signature, expected_pubkey_hash)
-}
-
-pub(crate) fn validate_sighash_all_anyonecanpay(
-    lib: &LibSecp256k1,
-    index: usize,
-    signature: &[u8; SIGHASH_ALL_SIGNATURE_SIZE],
-    expected_pubkey_hash: &[u8],
-) -> Result<(), Error> {
     Ok(())
 }

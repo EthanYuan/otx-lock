@@ -1,9 +1,7 @@
 use crate::error::Error;
-use crate::helper::{
-    get_signature_mode_by_witness, validate_secp256k1_blake2b_sighash_all,
-    validate_sighash_all_anyonecanpay, validate_sighash_single_anyonecanpay,
-};
+use crate::helper::{get_signature_mode_by_witness, validate_secp256k1_blake2b_sighash_all};
 use crate::types::{SighashMode, SIGHASH_ALL_SIGNATURE_SIZE};
+use crate::validate::{validate_sighash_all_anyonecanpay, validate_sighash_single_anyonecanpay};
 
 // Import from `core` instead of from `std` since we are in no-std mode
 use core::result::Result;
