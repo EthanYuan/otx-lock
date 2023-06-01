@@ -60,6 +60,7 @@ pub(crate) fn validate_sighash_all_anyonecanpay(
     blake2b.update(&witness_len.to_le_bytes());
     blake2b.update(&witness_for_digest.as_bytes());
 
+    // sighash mode ALL|ANYONECANPAY does not cover witnesses at positions beyond the number of inputs
     let mut i = 0;
     loop {
         if i == index {
