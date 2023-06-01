@@ -26,7 +26,7 @@ fn assert_script_error(err: Error, err_code: i8) {
 fn test_empty_args() {
     // deploy contract
     let mut context = Context::default();
-    let contract_bin: Bytes = Loader::default().load_binary("otx-lock");
+    let contract_bin: Bytes = Loader::default().load_binary("otx-sighash-lock");
     let out_point = context.deploy_cell(contract_bin);
 
     // prepare scripts

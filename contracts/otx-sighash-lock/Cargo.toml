@@ -1,5 +1,5 @@
 [package]
-name = "otx-lock"
+name = "otx-sighash-lock"
 version = "0.1.0"
 edition = "2021"
 

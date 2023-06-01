@@ -9,5 +9,5 @@ version = "0.10.0"
 deployment = "deployment.toml"
 
 [[contracts]]
-name = "otx-lock"
+name = "otx-sighash-lock"
 template_type = "Rust"

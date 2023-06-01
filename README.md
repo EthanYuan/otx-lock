@@ -1,6 +1,6 @@
-# otx-lock
+# otx-sighash-lock
 
-otx-lock is a smart contract (lock script) based on the CKB blockchain. It enables signatures to only commit to a portion of the data in a transaction. 
+otx-sighash-lock is a smart contract (lock script) based on the CKB blockchain. It enables signatures to only commit to a portion of the data in a transaction. 
 
 Build contracts:
 

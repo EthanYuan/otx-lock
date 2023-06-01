@@ -18,7 +18,7 @@ fn test_sighash_all_anyonecanpay() {
 
     // deploy contract
     let mut context = Context::default();
-    let contract_bin: Bytes = Loader::default().load_binary("otx-lock");
+    let contract_bin: Bytes = Loader::default().load_binary("otx-sighash-lock");
     let out_point = context.deploy_cell(contract_bin);
 
     // deploy secp256k1 lib
