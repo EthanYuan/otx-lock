@@ -8,7 +8,6 @@ use blake2b_ref::{Blake2b, Blake2bBuilder};
 // Import heap related library from `alloc`
 // https://doc.rust-lang.org/alloc/index.html
 use alloc::string::ToString;
-use alloc::vec::Vec;
 
 // Import CKB syscalls and structures
 // https://docs.rs/ckb-std/
@@ -62,16 +61,13 @@ pub(crate) fn validate_secp256k1_blake2b_sighash_all(
 }
 
 pub(crate) fn add_prefix(sighash: u8, message: &mut [u8]) {
-    let mut prefix = Vec::new();
-    prefix.extend_from_slice(MAGIC_CODE.as_bytes());
-    prefix.push(b' ');
-    prefix.extend_from_slice(sighash.to_string().as_bytes());
-    prefix.extend_from_slice(b":\n");
-    prefix.extend_from_slice(message.len().to_string().as_bytes());
-    let new = [prefix, message.to_vec()].concat();
-
     let mut blake2b = new_blake2b();
-    blake2b.update(&new);
+    blake2b.update(MAGIC_CODE.as_bytes());
+    blake2b.update(b" ");
+    blake2b.update(sighash.to_string().as_bytes());
+    blake2b.update(b":\n");
+    blake2b.update(message.len().to_string().as_bytes());
+    blake2b.update(message);
     blake2b.finalize(message);
 }
 
