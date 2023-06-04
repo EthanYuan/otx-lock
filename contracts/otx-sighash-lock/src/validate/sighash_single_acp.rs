@@ -29,12 +29,12 @@ pub(crate) fn validate_sighash_single_anyonecanpay(
     let input_len = input.as_slice().len() as u64;
 
     // output
-    let input_index = get_input_index(&input)?;
-    let output = load_cell(input_index, Source::Output)?;
+    let input_absolute_index = calculate_input_absolute_index(&input)?;
+    let output = load_cell(input_absolute_index, Source::Output)?;
     let output_len = output.as_slice().len() as u64;
 
     // outputs data
-    let output_data = load_cell_data(input_index, Source::Output)?.pack();
+    let output_data = load_cell_data(input_absolute_index, Source::Output)?.pack();
     let output_data_len = output_data.as_slice().len() as u64;
 
     // witness
@@ -69,7 +69,7 @@ pub(crate) fn validate_sighash_single_anyonecanpay(
     verify_pubkey_hash(lib, &message, signature, expected_pubkey_hash)
 }
 
-fn get_input_index(input: &CellInput) -> Result<usize, Error> {
+fn calculate_input_absolute_index(input: &CellInput) -> Result<usize, Error> {
     load_transaction()?
         .raw()
         .inputs()
