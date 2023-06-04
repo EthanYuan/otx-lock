@@ -99,6 +99,10 @@ pub fn sign_sighash_single_acp(
     let output = tx.outputs().get(input_index).unwrap();
     let output_len = output.as_slice().len() as u64;
 
+    // outputs data
+    let output_data = tx.outputs_data().get(input_index).unwrap();
+    let output_data_len = output_data.as_slice().len() as u64;
+
     // witness
     let witness = WitnessArgs::default();
     let zero_lock: Bytes = {
@@ -120,6 +124,8 @@ pub fn sign_sighash_single_acp(
     blake2b.update(input.as_slice());
     blake2b.update(&output_len.to_le_bytes());
     blake2b.update(output.as_slice());
+    blake2b.update(&output_data_len.to_le_bytes());
+    blake2b.update(output_data.as_slice());
     blake2b.update(&witness_len.to_le_bytes());
     blake2b.update(&witness_for_digest.as_bytes());
     blake2b.finalize(&mut message);
@@ -159,6 +165,11 @@ pub fn sign_sighash_all_acp(
     let outputs_count = outputs.len();
     let outputs_len = outputs.as_slice().len() as u64;
 
+    // outputs data
+    let outputs_data = tx.outputs_data();
+    let outputs_data_count = outputs_data.unpack().len() as u64;
+    let outputs_data_len = outputs_data.as_slice().len() as u64;
+
     // witness
     let witness = WitnessArgs::default();
     let zero_lock: Bytes = {
@@ -181,6 +192,9 @@ pub fn sign_sighash_all_acp(
     blake2b.update(&outputs_count.to_le_bytes());
     blake2b.update(&outputs_len.to_le_bytes());
     blake2b.update(outputs.as_slice());
+    blake2b.update(&outputs_data_count.to_le_bytes());
+    blake2b.update(&outputs_data_len.to_le_bytes());
+    blake2b.update(outputs_data.as_slice());
     blake2b.update(&witness_len.to_le_bytes());
     blake2b.update(&witness_for_digest.as_bytes());
 
