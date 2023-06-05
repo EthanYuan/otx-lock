@@ -19,7 +19,7 @@ use ckb_std::{
 pub(crate) fn get_signature_mode_by_witness(
     index: usize,
 ) -> Result<([u8; SIGHASH_ALL_SIGNATURE_SIZE], SighashMode), Error> {
-    let witness_args = load_witness_args(index, Source::GroupInput)?;
+    let witness_args = load_witness_args(index, Source::Input)?;
     let witness_lock: Bytes = witness_args
         .lock()
         .to_opt()

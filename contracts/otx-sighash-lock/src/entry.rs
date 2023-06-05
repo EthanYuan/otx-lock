@@ -13,10 +13,12 @@ use ckb_std::{
     ckb_types::{bytes::Bytes, prelude::*},
     debug,
     dynamic_loading_c_impl::CKBDLContext,
-    error::SysError,
-    high_level::{load_input, load_script, load_witness_args},
+    high_level::{
+        load_cell_lock_hash, load_script, load_script_hash, load_witness_args, QueryIter,
+    },
 };
 
+use alloc::vec::Vec;
 use ckb_lib_secp256k1::LibSecp256k1;
 
 pub fn main() -> Result<(), Error> {
@@ -48,28 +50,37 @@ pub fn main() -> Result<(), Error> {
 
     // This is a lock script that is compatible with various sighash modes,
     // so we need to verify each witness in the same lock script group
-    let mut i = 0;
-    loop {
-        match load_input(i, Source::GroupInput) {
-            Ok(_) => {
-                let (signature, sighash_mode) = get_signature_mode_by_witness(i)?;
-                match sighash_mode {
-                    SighashMode::All => return Err(Error::UnsupportedSighashMode),
-                    SighashMode::None => return Err(Error::UnsupportedSighashMode),
-                    SighashMode::Single => return Err(Error::UnsupportedSighashMode),
-                    SighashMode::AllAnyoneCanPay => {
-                        validate_sighash_all_anyonecanpay(&lib, i, &signature, &args)?;
-                    }
-                    SighashMode::NoneAnyoneCanPay => return Err(Error::UnsupportedSighashMode),
-                    SighashMode::SingleAnyoneCanPay => {
-                        validate_sighash_single_anyonecanpay(&lib, i, &signature, &args)?;
-                    }
-                };
-                i += 1;
+    let current_script_hash = load_script_hash()?;
+    let group_inputs_absolute_indices: Vec<_> = QueryIter::new(load_cell_lock_hash, Source::Input)
+        .enumerate()
+        .filter_map(|(i, hash)| {
+            if hash == current_script_hash {
+                Some(i)
+            } else {
+                None
             }
-            Err(SysError::IndexOutOfBound) => break,
-            Err(_) => return Err(Error::LoopGroupInputs),
-        }
+        })
+        .collect();
+    for i in group_inputs_absolute_indices.iter() {
+        let (signature, sighash_mode) = get_signature_mode_by_witness(*i)?;
+        match sighash_mode {
+            SighashMode::All => return Err(Error::UnsupportedSighashMode),
+            SighashMode::None => return Err(Error::UnsupportedSighashMode),
+            SighashMode::Single => return Err(Error::UnsupportedSighashMode),
+            SighashMode::AllAnyoneCanPay => {
+                validate_sighash_all_anyonecanpay(
+                    &lib,
+                    *i,
+                    &group_inputs_absolute_indices,
+                    &signature,
+                    &args,
+                )?;
+            }
+            SighashMode::NoneAnyoneCanPay => return Err(Error::UnsupportedSighashMode),
+            SighashMode::SingleAnyoneCanPay => {
+                validate_sighash_single_anyonecanpay(&lib, *i, &signature, &args)?;
+            }
+        };
     }
 
     Ok(())
