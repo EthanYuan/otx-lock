@@ -16,7 +16,7 @@ use ckb_std::{
     ckb_types::packed::WitnessArgsBuilder,
     ckb_types::prelude::*,
     error::SysError,
-    high_level::{load_transaction, load_witness_args},
+    high_level::{load_input, load_transaction, load_witness_args},
 };
 
 pub(crate) fn validate_sighash_all_anyonecanpay(
@@ -28,13 +28,18 @@ pub(crate) fn validate_sighash_all_anyonecanpay(
     let tx = load_transaction()?.raw();
 
     // input
-    let input = tx.inputs().get(index).ok_or(Error::Encoding)?;
+    let input = load_input(index, Source::GroupInput)?;
     let input_len = input.as_slice().len() as u64;
 
     // outputs
     let outputs = tx.outputs();
     let outputs_count = outputs.len();
     let outputs_len = outputs.as_slice().len() as u64;
+
+    // outputs data
+    let outputs_data = tx.outputs_data();
+    let outputs_data_count = outputs_data.unpack().len() as u64;
+    let outputs_data_len = outputs_data.as_slice().len() as u64;
 
     // witness
     let witness = load_witness_args(index, Source::GroupInput)?;
@@ -57,6 +62,9 @@ pub(crate) fn validate_sighash_all_anyonecanpay(
     blake2b.update(&outputs_count.to_le_bytes());
     blake2b.update(&outputs_len.to_le_bytes());
     blake2b.update(outputs.as_slice());
+    blake2b.update(&outputs_data_count.to_le_bytes());
+    blake2b.update(&outputs_data_len.to_le_bytes());
+    blake2b.update(outputs_data.as_slice());
     blake2b.update(&witness_len.to_le_bytes());
     blake2b.update(&witness_for_digest.as_bytes());
 
