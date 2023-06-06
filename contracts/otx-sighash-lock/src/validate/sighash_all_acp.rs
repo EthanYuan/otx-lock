@@ -15,20 +15,20 @@ use ckb_std::{
     ckb_types::bytes::Bytes,
     ckb_types::packed::WitnessArgsBuilder,
     ckb_types::prelude::*,
-    error::SysError,
     high_level::{load_input, load_transaction, load_witness_args},
 };
 
 pub(crate) fn validate_sighash_all_anyonecanpay(
     lib: &LibSecp256k1,
     index: usize,
+    group_inputs_absolute_indices: &[usize],
     signature: &[u8; SIGHASH_ALL_SIGNATURE_SIZE],
     expected_pubkey_hash: &[u8],
 ) -> Result<(), Error> {
     let tx = load_transaction()?.raw();
 
     // input
-    let input = load_input(index, Source::GroupInput)?;
+    let input = load_input(index, Source::Input)?;
     let input_len = input.as_slice().len() as u64;
 
     // outputs
@@ -42,7 +42,7 @@ pub(crate) fn validate_sighash_all_anyonecanpay(
     let outputs_data_len = outputs_data.as_slice().len() as u64;
 
     // witness
-    let witness = load_witness_args(index, Source::GroupInput)?;
+    let witness = load_witness_args(index, Source::Input)?;
     let zero_lock: Bytes = {
         let buf: Vec<_> = vec![0u8; 1 + SIGHASH_ALL_SIGNATURE_SIZE];
         buf.into()
@@ -68,27 +68,19 @@ pub(crate) fn validate_sighash_all_anyonecanpay(
     blake2b.update(&witness_len.to_le_bytes());
     blake2b.update(&witness_for_digest.as_bytes());
 
-    // sighash mode ALL|ANYONECANPAY does not cover witnesses at positions beyond the number of inputs
-    let mut i = 0;
-    loop {
-        if i == index {
-            i += 1;
+    // sighash mode ALL|ANYONECANPAY does not cover witnesses at positions beyond the number of inputs in group
+    // witnesses that are not in this script group may not adhere to WitnessArgs
+    for i in group_inputs_absolute_indices {
+        if i == &index {
             continue;
         }
-        match load_witness_args(i, Source::GroupInput) {
-            Ok(_) => {
-                let witness = load_witness_args(i, Source::GroupInput)?;
-                let witness_for_digest = WitnessArgsBuilder::default()
-                    .output_type(witness.output_type())
-                    .build();
-                let witness_len = witness_for_digest.as_bytes().len() as u64;
-                blake2b.update(&witness_len.to_le_bytes());
-                blake2b.update(&witness_for_digest.as_bytes());
-                i += 1;
-            }
-            Err(SysError::IndexOutOfBound) => break,
-            Err(_) => return Err(Error::LoopGroupInputs),
-        }
+        let witness = load_witness_args(*i, Source::Input)?;
+        let witness_for_digest = WitnessArgsBuilder::default()
+            .output_type(witness.output_type())
+            .build();
+        let witness_len = witness_for_digest.as_bytes().len() as u64;
+        blake2b.update(&witness_len.to_le_bytes());
+        blake2b.update(&witness_for_digest.as_bytes());
     }
 
     blake2b.finalize(&mut message);

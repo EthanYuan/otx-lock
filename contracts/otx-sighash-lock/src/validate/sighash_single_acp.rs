@@ -13,9 +13,8 @@ use alloc::{vec, vec::Vec};
 use ckb_std::{
     ckb_constants::Source,
     ckb_types::bytes::Bytes,
-    ckb_types::packed::CellInput,
     ckb_types::prelude::*,
-    high_level::{load_cell, load_cell_data, load_input, load_transaction, load_witness_args},
+    high_level::{load_cell, load_cell_data, load_input, load_witness_args},
 };
 
 pub(crate) fn validate_sighash_single_anyonecanpay(
@@ -25,20 +24,19 @@ pub(crate) fn validate_sighash_single_anyonecanpay(
     expected_pubkey_hash: &[u8],
 ) -> Result<(), Error> {
     // input
-    let input = load_input(index, Source::GroupInput)?;
+    let input = load_input(index, Source::Input)?;
     let input_len = input.as_slice().len() as u64;
 
     // output
-    let input_absolute_index = calculate_input_absolute_index(&input)?;
-    let output = load_cell(input_absolute_index, Source::Output)?;
+    let output = load_cell(index, Source::Output)?;
     let output_len = output.as_slice().len() as u64;
 
     // outputs data
-    let output_data = load_cell_data(input_absolute_index, Source::Output)?.pack();
+    let output_data = load_cell_data(index, Source::Output)?.pack();
     let output_data_len = output_data.as_slice().len() as u64;
 
     // witness
-    let witness = load_witness_args(index, Source::GroupInput)?;
+    let witness = load_witness_args(index, Source::Input)?;
     let zero_lock: Bytes = {
         let buf: Vec<_> = vec![0u8; 1 + SIGHASH_ALL_SIGNATURE_SIZE];
         buf.into()
@@ -67,13 +65,4 @@ pub(crate) fn validate_sighash_single_anyonecanpay(
     add_prefix(SighashMode::SingleAnyoneCanPay as u8, &mut message);
 
     verify_pubkey_hash(lib, &message, signature, expected_pubkey_hash)
-}
-
-fn calculate_input_absolute_index(input: &CellInput) -> Result<usize, Error> {
-    load_transaction()?
-        .raw()
-        .inputs()
-        .into_iter()
-        .position(|i| i.as_bytes() == input.as_bytes())
-        .ok_or(Error::ItemMissing)
 }
